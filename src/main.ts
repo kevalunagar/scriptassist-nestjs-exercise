@@ -1,11 +1,17 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { json, urlencoded } from 'express';
+import passport from 'passport';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+  app.use(json({ limit: '256kb' }));
+  app.use(urlencoded({ extended: true, limit: '256kb' }));
+  app.enableCors();
+  app.use(passport.initialize());
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
@@ -18,10 +24,6 @@ async function bootstrap() {
     }),
   );
 
-  // CORS
-  app.enableCors();
-
-  // Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('TaskFlow API')
     .setDescription('Task Management System API')
@@ -36,4 +38,4 @@ async function bootstrap() {
   console.log(`Application running on: http://localhost:${port}`);
   console.log(`Swagger documentation: http://localhost:${port}/api`);
 }
-bootstrap(); 
+bootstrap();
