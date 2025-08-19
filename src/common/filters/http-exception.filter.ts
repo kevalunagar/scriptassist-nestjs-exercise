@@ -66,12 +66,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let details: any[] | undefined;
 
     if (exception instanceof HttpException) {
-      const response = exception.getResponse();
+      const response = exception.getResponse() as {
+        message?: string | Record<string, any>;
+        error?: string;
+        details?: any[];
+      };
       if (response instanceof Object) {
-        message = response['message'];
-        error = response['error'];
-        if (httpStatus < 500 && response['details']) {
-          details = response['details'];
+        message = response.message ?? 'No message provided';
+        error = response.error;
+        if (httpStatus < 500 && response.details) {
+          details = response.details;
         }
       } else {
         message = response;
