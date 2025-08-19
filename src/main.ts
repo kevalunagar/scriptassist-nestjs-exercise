@@ -1,3 +1,4 @@
+import { ResponseTransformInterceptor } from '@common/interceptors/response.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -11,6 +12,7 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true, limit: '256kb' }));
   app.enableCors();
   app.use(passport.initialize());
+  app.useGlobalInterceptors(new ResponseTransformInterceptor());
 
   // Global validation pipe
   app.useGlobalPipes(
