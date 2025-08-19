@@ -39,6 +39,10 @@ import { TaskProcessorModule } from './queues/task-processor/task-processor.modu
         connection: {
           host: configService.get('REDIS_HOST'),
           port: configService.get('REDIS_PORT'),
+          password: configService.get('REDIS_PASSWORD'),
+          ...(configService.get('REDIS_TLS') === 'true'
+            ? { tls: { rejectUnauthorized: false } }
+            : {}),
         },
       }),
     }),
