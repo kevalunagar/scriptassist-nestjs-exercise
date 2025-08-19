@@ -4,7 +4,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
-import passport from 'passport';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -12,7 +11,6 @@ async function bootstrap() {
   app.use(json({ limit: '256kb' }));
   app.use(urlencoded({ extended: true, limit: '256kb' }));
   app.enableCors();
-  app.use(passport.initialize());
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new AllExceptionsFilter(httpAdapter));
