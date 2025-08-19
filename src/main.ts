@@ -1,6 +1,7 @@
+import { AllExceptionsFilter } from '@common/filters/http-exception.filter';
 import { ResponseTransformInterceptor } from '@common/interceptors/response.interceptor';
 import { ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
 import passport from 'passport';
@@ -13,6 +14,8 @@ async function bootstrap() {
   app.enableCors();
   app.use(passport.initialize());
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
+  const { httpAdapter } = app.get(HttpAdapterHost);
+  app.useGlobalFilters(new AllExceptionsFilter(httpAdapter));
 
   // Global validation pipe
   app.useGlobalPipes(
