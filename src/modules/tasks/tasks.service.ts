@@ -292,4 +292,15 @@ export class TasksService {
       await queryRunner.release();
     }
   }
+
+  async findOverdueTasks(limit: number, offset: number = 0): Promise<Task[]> {
+    return this.tasksRepository
+      .createQueryBuilder('task')
+      .where('task.dueDate < :now', { now: new Date() })
+      .andWhere('task.status != :completed', { completed: TaskStatus.COMPLETED })
+      .orderBy('task.dueDate', 'ASC')
+      .take(limit)
+      .skip(offset)
+      .getMany();
+  }
 }

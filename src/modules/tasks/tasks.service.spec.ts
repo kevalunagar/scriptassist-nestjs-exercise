@@ -115,7 +115,7 @@ describe('TasksService', () => {
         userId: '1',
       };
 
-      (queryRunner.manager.save as any).mockResolvedValue(mockTask);
+      (queryRunner.manager.save as jest.Mock).mockResolvedValue(mockTask);
       const result = await service.create(createTaskDto);
 
       expect(queryRunner.startTransaction).toHaveBeenCalled();
@@ -134,7 +134,7 @@ describe('TasksService', () => {
         userId: '1',
       };
 
-      (queryRunner.manager.save as any).mockRejectedValue(new Error('Database error'));
+      (queryRunner.manager.save as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(service.create(createTaskDto)).rejects.toThrow('Database error');
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
@@ -179,14 +179,14 @@ describe('TasksService', () => {
 
   describe('findOne', () => {
     it('should return a task when it exists', async () => {
-      (repository.findOne as any).mockResolvedValue(mockTask);
+      (repository.findOne as jest.Mock).mockResolvedValue(mockTask);
 
       const result = await service.findOne('1');
       expect(result).toEqual(mockTask);
     });
 
     it('should throw NotFoundException when task does not exist', async () => {
-      (repository.findOne as any).mockResolvedValue(null);
+      (repository.findOne as jest.Mock).mockResolvedValue(null);
 
       await expect(service.findOne('1')).rejects.toThrow(NotFoundException);
     });
@@ -198,8 +198,8 @@ describe('TasksService', () => {
         title: 'Updated Title',
       };
 
-      (repository.findOne as any).mockResolvedValue(mockTask);
-      (queryRunner.manager.save as any).mockResolvedValue({ ...mockTask, ...updateTaskDto });
+      (repository.findOne as jest.Mock).mockResolvedValue(mockTask);
+      (queryRunner.manager.save as jest.Mock).mockResolvedValue({ ...mockTask, ...updateTaskDto });
 
       const result = await service.update('1', updateTaskDto);
 
@@ -213,8 +213,8 @@ describe('TasksService', () => {
         status: TaskStatus.COMPLETED,
       };
 
-      (repository.findOne as any).mockResolvedValue(mockTask);
-      (queryRunner.manager.save as any).mockResolvedValue({ ...mockTask, ...updateTaskDto });
+      (repository.findOne as jest.Mock).mockResolvedValue(mockTask);
+      (queryRunner.manager.save as jest.Mock).mockResolvedValue({ ...mockTask, ...updateTaskDto });
 
       await service.update('1', updateTaskDto);
 
@@ -228,7 +228,7 @@ describe('TasksService', () => {
 
   describe('remove', () => {
     it('should successfully remove a task', async () => {
-      (repository.findOne as any).mockResolvedValue(mockTask);
+      (repository.findOne as jest.Mock).mockResolvedValue(mockTask);
 
       await service.remove('1');
 
@@ -238,7 +238,7 @@ describe('TasksService', () => {
     });
 
     it('should throw NotFoundException when task does not exist', async () => {
-      (repository.findOne as any).mockResolvedValue(null);
+      (repository.findOne as jest.Mock).mockResolvedValue(null);
 
       await expect(service.remove('1')).rejects.toThrow(NotFoundException);
     });
@@ -275,10 +275,10 @@ describe('TasksService', () => {
         action: 'complete' as const,
       };
 
-      (queryRunner.manager.findOne as any)
+      (queryRunner.manager.findOne as jest.Mock)
         .mockResolvedValueOnce(mockTask)
         .mockResolvedValueOnce({ ...mockTask, id: '2' });
-      (queryRunner.manager.save as any).mockImplementation(async (_, task) => task);
+      (queryRunner.manager.save as jest.Mock).mockImplementation(async (_, task) => task);
 
       const result = await service.batchProcess(operations);
 
@@ -293,12 +293,54 @@ describe('TasksService', () => {
         action: 'complete' as const,
       };
 
-      (queryRunner.manager.findOne as any).mockRejectedValue(new Error('Task not found'));
+      (queryRunner.manager.findOne as jest.Mock).mockRejectedValue(new Error('Task not found'));
 
       const result = await service.batchProcess(operations);
 
       expect(result[0].success).toBe(false);
       expect(result[0].error).toBe('Task not found');
+    });
+  });
+
+  describe('findOverdueTasks', () => {
+    it('should return overdue tasks with pagination', async () => {
+      const limit = 10;
+      const offset = 0;
+      const mockedTasks = [{ ...mockTask, dueDate: new Date(Date.now() - 86400000) }];
+
+      (queryBuilder.getMany as jest.Mock).mockResolvedValueOnce(mockedTasks);
+
+      const result = await service.findOverdueTasks(limit, offset);
+
+      expect(queryBuilder.where).toHaveBeenCalledWith('task.dueDate < :now', {
+        now: expect.any(Date),
+      });
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith('task.status != :completed', {
+        completed: TaskStatus.COMPLETED,
+      });
+      expect(queryBuilder.orderBy).toHaveBeenCalledWith('task.dueDate', 'ASC');
+      expect(queryBuilder.take).toHaveBeenCalledWith(limit);
+      expect(queryBuilder.skip).toHaveBeenCalledWith(offset);
+      expect(result).toEqual(mockedTasks);
+    });
+
+    it('should use default offset when not provided', async () => {
+      const limit = 10;
+      (queryBuilder.getMany as jest.Mock).mockResolvedValueOnce([]);
+
+      await service.findOverdueTasks(limit);
+
+      expect(queryBuilder.skip).toHaveBeenCalledWith(0);
+    });
+
+    it('should handle empty result set', async () => {
+      const limit = 10;
+      const offset = 0;
+      (queryBuilder.getMany as jest.Mock).mockResolvedValueOnce([]);
+
+      const result = await service.findOverdueTasks(limit, offset);
+
+      expect(result).toEqual([]);
     });
   });
 });
