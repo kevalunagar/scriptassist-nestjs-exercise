@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TaskStatus } from '../enums/task-status.enum';
 import { TaskPriority } from '../enums/task-priority.enum';
+import { TaskStatus } from '../enums/task-status.enum';
 
 export class TaskResponseDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -29,4 +29,4 @@ export class TaskResponseDto {
 
   @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   updatedAt: Date;
-} 
+}
