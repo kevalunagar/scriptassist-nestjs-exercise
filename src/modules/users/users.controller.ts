@@ -1,9 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { Authenticated } from '@modules/auth/decorators/current-user.decorator';
+import {
+  Body,
+  ClassSerializerInterceptor,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseInterceptors,
+} from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { UsersService } from './users.service';
 
 @ApiTags('users')
 @Controller('users')
@@ -16,31 +26,27 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Authenticated()
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Authenticated()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Authenticated()
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Authenticated()
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
-} 
+}
