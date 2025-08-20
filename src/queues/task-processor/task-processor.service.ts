@@ -20,7 +20,7 @@ export class TaskProcessorService extends WorkerHost {
     super();
   }
 
-  async process(job: Job): Promise<{ success: boolean; data?: any; error?: string }> {
+  async process(job: Job): Promise<{ success: boolean; data?: unknown; error?: string }> {
     this.logger.debug(`Processing job ${job.id} of type ${job.name}`);
     try {
       if (job.attemptsMade > 0) {
@@ -72,7 +72,11 @@ export class TaskProcessorService extends WorkerHost {
     await queryRunner.startTransaction();
 
     try {
-      const task = await this.tasksService.updateStatus(taskId, status);
+      const task = await this.tasksService.updateStatusWithManager(
+        taskId,
+        status,
+        queryRunner.manager,
+      );
       await queryRunner.commitTransaction();
 
       return {
@@ -89,9 +93,9 @@ export class TaskProcessorService extends WorkerHost {
   }
 
   private async handleOverdueTasks(
-    job: Job,
+    _job: Job,
   ): Promise<{ success: boolean; processedCount?: number; error?: string }> {
-    const BATCH_SIZE = 100; // Process 100 tasks at a time
+    const BATCH_SIZE = 100;
     this.logger.debug('Processing overdue tasks notification');
 
     const queryRunner = this.dataSource.createQueryRunner();

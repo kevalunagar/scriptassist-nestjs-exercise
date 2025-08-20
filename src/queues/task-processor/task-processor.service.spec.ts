@@ -8,11 +8,12 @@ import { TaskProcessorService } from './task-processor.service';
 
 describe('TaskProcessorService', () => {
   let service: TaskProcessorService;
-  let tasksService: TasksService;
-  let dataSource: DataSource;
+  let _tasksService: TasksService;
+  let _dataSource: DataSource;
 
   const mockTasksService = {
     updateStatus: jest.fn(),
+    updateStatusWithManager: jest.fn(),
     findOverdueTasks: jest.fn(),
   };
 
@@ -44,8 +45,8 @@ describe('TaskProcessorService', () => {
     }).compile();
 
     service = module.get<TaskProcessorService>(TaskProcessorService);
-    tasksService = module.get<TasksService>(TasksService);
-    dataSource = module.get<DataSource>(DataSource);
+    _tasksService = module.get<TasksService>(TasksService);
+    _dataSource = module.get<DataSource>(DataSource);
   });
 
   describe('process', () => {
@@ -58,7 +59,7 @@ describe('TaskProcessorService', () => {
       } as Job;
 
       const mockTask = { id: '1', status: TaskStatus.COMPLETED };
-      mockTasksService.updateStatus.mockResolvedValue(mockTask);
+      mockTasksService.updateStatusWithManager.mockResolvedValue(mockTask);
 
       const result = await service.process(mockJob);
 
@@ -78,7 +79,7 @@ describe('TaskProcessorService', () => {
       } as Job;
 
       const mockTask = { id: '1', status: TaskStatus.COMPLETED };
-      mockTasksService.updateStatus.mockResolvedValue(mockTask);
+      mockTasksService.updateStatusWithManager.mockResolvedValue(mockTask);
 
       const result = await service.process(mockJob);
 

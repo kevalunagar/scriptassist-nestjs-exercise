@@ -63,8 +63,8 @@ import { TaskProcessorModule } from './queues/task-processor/task-processor.modu
     }),
     ThrottlerModule.forRoot([
       {
-        ttl: 0,
-        limit: 0,
+        ttl: Number(process.env.THROTTLE_TTL) ?? 60,
+        limit: Number(process.env.THROTTLE_LIMIT) ?? 100,
       },
     ]),
     UsersModule,

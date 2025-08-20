@@ -2,7 +2,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskFilterDto } from './dto/task-filter.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -28,19 +28,12 @@ export class TasksService {
       const task = this.tasksRepository.create(createTaskDto);
       const savedTask = await queryRunner.manager.save(Task, task);
       try {
-        await this.taskQueue.add(
-          'task-status-update',
-          {
-            taskId: savedTask.id,
-            status: savedTask.status,
-          },
-          {
-            removeOnComplete: true,
-            attempts: 3,
-          },
-        );
+        await this.enqueueWithRetry('task-status-update', {
+          taskId: savedTask.id,
+          status: savedTask.status,
+        });
       } catch (queueError) {
-        console.error('Failed to add task to queue:', queueError);
+        console.error('Failed to add task to queue after retries:', queueError);
       }
       await queryRunner.commitTransaction();
       return savedTask;
@@ -144,19 +137,12 @@ export class TasksService {
       const updatedTask = await queryRunner.manager.save(Task, task);
       if (originalStatus !== updatedTask.status) {
         try {
-          await this.taskQueue.add(
-            'task-status-update',
-            {
-              taskId: updatedTask.id,
-              status: updatedTask.status,
-            },
-            {
-              removeOnComplete: true,
-              attempts: 3,
-            },
-          );
+          await this.enqueueWithRetry('task-status-update', {
+            taskId: updatedTask.id,
+            status: updatedTask.status,
+          });
         } catch (queueError) {
-          console.error('Failed to add status update to queue:', queueError);
+          console.error('Failed to add status update to queue after retries:', queueError);
         }
       }
 
@@ -199,6 +185,38 @@ export class TasksService {
     const task = await this.findOne(id);
     task.status = status;
     return this.tasksRepository.save(task);
+  }
+
+  async updateStatusWithManager(
+    id: string,
+    status: TaskStatus,
+    manager: EntityManager,
+  ): Promise<Task> {
+    const task = await manager.findOne(Task, { where: { id } });
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${id} not found`);
+    }
+    task.status = status;
+    return manager.save(Task, task);
+  }
+
+  private async enqueueWithRetry(
+    name: string,
+    data: unknown,
+    attempts = 3,
+    backoffMs = 500,
+  ): Promise<void> {
+    let lastErr: unknown = null;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        await this.taskQueue.add(name, data, { removeOnComplete: true, attempts: 3 });
+        return;
+      } catch (err) {
+        lastErr = err;
+        await new Promise(r => setTimeout(r, backoffMs * (i + 1)));
+      }
+    }
+    throw lastErr;
   }
 
   async getStats() {
