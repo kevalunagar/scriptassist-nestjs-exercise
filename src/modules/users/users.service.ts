@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import * as bcrypt from 'bcrypt';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -40,11 +40,11 @@ export class UsersService {
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
-    
+
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
     }
-    
+
     this.usersRepository.merge(user, updateUserDto);
     return this.usersRepository.save(user);
   }
@@ -53,4 +53,29 @@ export class UsersService {
     const user = await this.findOne(id);
     await this.usersRepository.remove(user);
   }
-} 
+
+  async updateRefreshToken(userId: string, refreshToken: string | undefined): Promise<void> {
+    await this.usersRepository.update(userId, {
+      refreshToken,
+    });
+  }
+
+  async findByRefreshToken(refreshToken: string): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { refreshToken, isActive: true },
+    });
+  }
+
+  async deactivateUser(userId: string): Promise<void> {
+    await this.usersRepository.update(userId, {
+      isActive: false,
+      refreshToken: undefined,
+    });
+  }
+
+  async removeRefreshToken(userId: string): Promise<void> {
+    await this.usersRepository.update(userId, {
+      refreshToken: undefined,
+    });
+  }
+}

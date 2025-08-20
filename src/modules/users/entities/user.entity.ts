@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Task } from '../../tasks/entities/task.entity';
+import type { Task } from '../../tasks/entities/task.entity';
 
 @Entity('users')
 export class User {
@@ -27,7 +27,8 @@ export class User {
   @Column({ default: 'user' })
   role: string;
 
-  @OneToMany(() => Task, task => task.user)
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+  @OneToMany(() => require('../../tasks/entities/task.entity').Task, (task: any) => task.user)
   tasks: Task[];
 
   @Column({ nullable: true })
