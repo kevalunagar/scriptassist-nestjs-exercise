@@ -70,20 +70,10 @@ import { TaskProcessorModule } from './queues/task-processor/task-processor.modu
     UsersModule,
     TasksModule,
     AuthModule,
-
-    // Queue processing modules
     TaskProcessorModule,
     ScheduledTasksModule,
   ],
-  providers: [
-    // Inefficient: Global cache service with no configuration options
-    // This creates a single in-memory cache instance shared across all modules
-    CacheService,
-  ],
-  exports: [
-    // Exporting the cache service makes it available to other modules
-    // but creates tight coupling
-    CacheService,
-  ],
+  providers: [CacheService],
+  exports: [CacheService],
 })
 export class AppModule {}
