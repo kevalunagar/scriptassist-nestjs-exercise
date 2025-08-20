@@ -1,3 +1,4 @@
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -10,7 +11,6 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { UsersModule } from './modules/users/users.module';
 import { ScheduledTasksModule } from './queues/scheduled-tasks/scheduled-tasks.module';
 import { TaskProcessorModule } from './queues/task-processor/task-processor.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -46,16 +46,27 @@ import { TaskProcessorModule } from './queues/task-processor/task-processor.modu
         },
       }),
     }),
-    ThrottlerModule.forRootAsync({
+    RedisModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => [
-        {
-          ttl: 60,
-          limit: 10,
+      useFactory: (configService: ConfigService) => ({
+        type: 'single',
+        options: {
+          host: configService.get('REDIS_HOST'),
+          port: configService.get('REDIS_PORT'),
+          password: configService.get('REDIS_PASSWORD'),
+          ...(configService.get('REDIS_TLS') === 'true'
+            ? { tls: { rejectUnauthorized: false } }
+            : {}),
         },
-      ],
+      }),
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 0,
+        limit: 0,
+      },
+    ]),
     UsersModule,
     TasksModule,
     AuthModule,
